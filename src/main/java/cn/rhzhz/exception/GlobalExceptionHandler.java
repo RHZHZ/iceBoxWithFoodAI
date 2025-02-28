@@ -1,6 +1,6 @@
 package cn.rhzhz.exception;
 
-import cn.rhzhz.pojo.Result;
+import cn.rhzhz.DTO.Result;
 
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;

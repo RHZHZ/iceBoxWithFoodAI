@@ -4,17 +4,18 @@ spring:
     url: jdbc:mysql://localhost:3306/myfood
     username: root
     password: root
+  jpa:
+    hibernate.ddl-auto: update
+    show-sql: true
 # 开启自动驼峰命名映射（column下划线 → property驼峰）
 mybatis:
   configuration:
     map-underscore-to-camel-case: true
-
 logging:
   level:
     cn.rhzhz.mapper: DEBUG # 替换为你的 Mapper 包路径
     org.springframework.web.reactive: DEBUG
     reactor.netty.http.client: DEBUG
-
 ai:
   providers:
     openai:

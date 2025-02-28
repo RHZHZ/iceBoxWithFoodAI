@@ -1,6 +1,5 @@
 package cn.rhzhz.security;
 
-import cn.rhzhz.pojo.Result;
 import cn.rhzhz.utils.JwtUtil;
 import cn.rhzhz.utils.ThreadLocalUtil;
 import jakarta.servlet.http.HttpServletRequest;

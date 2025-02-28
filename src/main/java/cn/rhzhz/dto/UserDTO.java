@@ -1,4 +1,4 @@
-package cn.rhzhz.dto;
+package cn.rhzhz.DTO;
 
 import jakarta.validation.constraints.*;
 import lombok.Data;

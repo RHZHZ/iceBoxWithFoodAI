@@ -1,8 +1,8 @@
 package cn.rhzhz.controller;
 
-import cn.rhzhz.pojo.Result;
+import cn.rhzhz.DTO.Result;
 import cn.rhzhz.pojo.User;
-import cn.rhzhz.dto.UserDTO;
+import cn.rhzhz.DTO.UserDTO;
 import cn.rhzhz.service.UserService;
 import cn.rhzhz.utils.JwtUtil;
 import cn.rhzhz.utils.SimpleEncryptor;

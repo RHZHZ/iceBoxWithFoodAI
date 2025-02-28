@@ -1,32 +1,23 @@
 package cn.rhzhz;
 
 import cn.rhzhz.mapper.FoodsMapper;
-import cn.rhzhz.pojo.FoodRecord;
 import cn.rhzhz.service.FoodInventoryService;
-import cn.rhzhz.service.ModelService;
+import cn.rhzhz.aiService.ModelService;
 import cn.rhzhz.utils.SimpleEncryptor;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.json.JSONException;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import reactor.core.publisher.Flux;
 
 
-import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
 
 @SpringBootTest
 public class JwtTest {

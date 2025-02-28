@@ -78,6 +78,7 @@ public interface FoodsMapper {
             "WHERE id = #{id} AND user_id = #{userId}")
     void update(FoodRecord food);
 
+    // 正确定义（返回可能包含多个记录的 List）
     @Select("SELECT * FROM food_record WHERE name = #{name} AND user_id = #{userId}")
-    Optional<FoodRecord> findByName(@Param("name") String name,int userId);
+    List<FoodRecord> findByName(@Param("name") String name, @Param("userId") Integer userId);
 }

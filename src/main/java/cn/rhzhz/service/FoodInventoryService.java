@@ -1,59 +1,92 @@
 package cn.rhzhz.service;
 
+import cn.rhzhz.aiService.ModelServiceFactory;
+import cn.rhzhz.DTO.AIFoodItem;
 import cn.rhzhz.mapper.FoodsMapper;
 import cn.rhzhz.pojo.FoodRecord;
-import cn.rhzhz.utils.ThreadLocalUtil;
 import lombok.RequiredArgsConstructor;
+import org.apache.ibatis.jdbc.Null;
 import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.math.BigDecimal;
-import java.time.Duration;
-import java.util.Map;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 public class FoodInventoryService {
+
     @Autowired
     private final ModelServiceFactory modelServiceFactory; // 确保已注入
-    @Qualifier("deepSeekService")
-    @Autowired
-    private ModelService modelService;
+
     @Autowired
     private final FoodsMapper foodRecordMapper;
 
     @Transactional
-    public Flux<String> processConsumption(String message, String provider,int id) throws JSONException {
+    public Flux<String> processConsumption(String message, String provider, int id) throws JSONException {
+        // 匹配多食品的正则（支持"g/克/块/个"单位）
+        Pattern pattern = Pattern.compile("([\\u4e00-\\u9fa5]+?):(\\d+)(g|克|块|个)");
+
         return modelServiceFactory.getService(provider)
                 .streamChatCompletion(message)
-                .windowTimeout(15, Duration.ofMillis(2000)) // 每5个块或500ms触发一次处理
-                .flatMap(flux -> flux.collect(StringBuffer::new, StringBuffer::append))
-                .map(buffer -> {
-                    // 解析食物消耗信息（示例：使用正则）
-                    Matcher matcher = Pattern.compile("(.+?):(\\d+)(克|千克)").matcher(buffer);
-                    if (matcher.find()) {
-                        System.out.println("找到！"+matcher);
-                        String foodName = matcher.group(1);
-                        BigDecimal amount = new BigDecimal(matcher.group(2));
-                        String unit = matcher.group(3);
+                .collectList() // 收集完整响应
+                .flatMapMany(responseList -> {
+                    String fullResponse = String.join("", responseList);
+                    // 按分号分割多食品条目
+                    String[] foodItems = fullResponse.split(";");
 
-                        // 更新库存
+                    return Flux.fromArray(foodItems)
+                            .flatMap(item -> {
+                                Matcher matcher = pattern.matcher(item);
+                                if (matcher.find()) {
+                                    AIFoodItem food = new AIFoodItem();
+                                    food.setUserId(id);
+                                    food.setFoodName(matcher.group(1));
+                                    food.setAmount(new BigDecimal(matcher.group(2)));
+                                    food.setUnit(matcher.group(3));
 
-                        FoodRecord food = foodRecordMapper.findByName(foodName,id)
-                                .orElseThrow(() -> new IllegalArgumentException("食物不存在"));
-                        food.setRemainingQuantity(food.getRemainingQuantity().subtract(amount));
-                        foodRecordMapper.update(food);
+                                    try {
+                                        food.validate();
+                                        // 查询数据库（返回List处理重复）
+                                        List<FoodRecord> records = foodRecordMapper.findByName(food.getFoodName(), id);
+                                        if (records.isEmpty()) {
+                                            return Flux.just(food.getFoodName() + ": 食品不存在");
+                                        } else if (records.size() > 1) {
+                                            return Flux.just(food.getFoodName() + ": 存在重复食品记录");
+                                        }
 
-                        return "更新成功: " + foodName + " 剩余 " + food.getRemainingQuantity() + unit;
-                    }
-                    return buffer+"";
+                                        // 更新库存逻辑
+                                        FoodRecord record = records.get(0); // 安全获取唯一记录
+
+                                        if(record.getTotalQuantity()== null){
+                                            record.setRemainingQuantity(record.getTotalQuantity().subtract(food.getAmount()));
+                                        }
+                                        else {
+                                            record.setRemainingQuantity(record.getRemainingQuantity().subtract(food.getAmount()));
+                                        }
+
+                                        //再次校验
+                                        if (record.getRemainingQuantity().compareTo(BigDecimal.ZERO) < 0) {
+                                            // 是负数
+                                            return Flux.just("库存不足："+food.getFoodName() );
+                                        }
+
+                                        foodRecordMapper.update(record);
+
+                                        return Flux.just(food.getFoodName() + " 更新成功，剩余 " + record.getRemainingQuantity() + record.getUnitType());
+                                    } catch (Exception e) {
+                                        return Flux.just(food.getFoodName() + " 处理失败: " + e.getMessage());
+                                    }
+                                } else {
+                                    return Flux.just("未知格式: " + item);
+                                }
+                            });
                 });
     }
 }

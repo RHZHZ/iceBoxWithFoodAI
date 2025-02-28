@@ -1,6 +1,6 @@
 package cn.rhzhz.controller;
 
-import cn.rhzhz.service.ModelServiceFactory;
+import cn.rhzhz.aiService.ModelServiceFactory;
 import lombok.RequiredArgsConstructor;
 import org.json.JSONException;
 import org.springframework.http.MediaType;

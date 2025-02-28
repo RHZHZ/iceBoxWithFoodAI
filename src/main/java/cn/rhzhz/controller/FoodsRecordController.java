@@ -1,17 +1,20 @@
 package cn.rhzhz.controller;
 
+
+import cn.rhzhz.DTO.RecipeResponse;
+import cn.rhzhz.mapper.FoodsMapper;
 import cn.rhzhz.service.FoodInventoryService;
+import cn.rhzhz.service.RecipeService;
 import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cn.rhzhz.dto.FoodRecordDTO;
+import cn.rhzhz.DTO.FoodRecordDTO;
 import cn.rhzhz.pojo.FoodRecord;
-import cn.rhzhz.pojo.Result;
+import cn.rhzhz.DTO.Result;
 import cn.rhzhz.service.FoodsRecordService;
 import cn.rhzhz.utils.ThreadLocalUtil;
 import jakarta.validation.Valid;
 
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.validation.BindingResult;
@@ -30,6 +33,13 @@ public class FoodsRecordController {
     private FoodsRecordService foodsRecordService;
     @Autowired
     private FoodInventoryService foodInventoryService;
+
+    @Autowired
+    private FoodsMapper foodsMapper;
+
+    @Autowired
+    private RecipeService recipeService;
+
     private static final Logger logger = LoggerFactory.getLogger(FoodsRecordController.class);
 
     //获取用户食物记录
@@ -64,6 +74,7 @@ public class FoodsRecordController {
 
         logger.info("接收到添加食品记录请求: {}", foodDTO);
 
+
         // 1. 校验参数合法性
         if (result.hasErrors()) {
             List<String> errors = result.getFieldErrors()
@@ -76,6 +87,13 @@ public class FoodsRecordController {
         // 2. 获取用户ID
         Map<String, Object> map = ThreadLocalUtil.get();
         int userId = (int) map.get("id");
+
+        //2.1 确保食品唯一
+        List<FoodRecord> existing = foodsMapper.findByName(foodDTO.getName(), userId);
+        if (!existing.isEmpty()) {
+
+            return Result.error("食品已存在");
+        }
 
         // 3. 将 DTO 转换为实体类
         FoodRecord foodRecord = new FoodRecord();
@@ -161,12 +179,23 @@ public class FoodsRecordController {
 
     // 新增端点：处理自然语言输入的食物消耗
     @PostMapping(value = "/consumeAi", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> consumeFood(@RequestParam String message,@RequestParam(defaultValue = "deepseek") String provider) throws JSONException {
-        logger.info("AI处理信息：｛｝",message);
-        Map<String,Object> map = ThreadLocalUtil.get();
+    public  Flux<String> consumeFood(
+            @RequestParam String message,
+
+            @RequestParam(defaultValue = "deepseek") String provider) throws JSONException {
+
+        Map<String, Object> map = ThreadLocalUtil.get();
         Integer id = (Integer) map.get("id");
-        message+="请不要回复其他的东西按照以下格式回复：食物名称：消耗数量。如：全麦面包:100";
-        return foodInventoryService.processConsumption(message, provider,id);
+        logger.info("用户ID：{},通过AI模型:{},处理信息：{}", id, provider, message);
+
+        // 拼接提示词
+        message += "用户id:" + id;
+        message += "请不要回复其他内容，按格式回复：用户id:10;食物名称：消耗数量;如：用户id:7;全麦面包:100克";
+
+        return foodInventoryService.processConsumption(message, provider, id);
+
     }
+
+
 
 }
