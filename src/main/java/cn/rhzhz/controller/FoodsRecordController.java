@@ -70,7 +70,7 @@ public class FoodsRecordController {
 
     //增添一条记录
     @PostMapping("/addRecord")
-    public Result addRecord(@Valid @RequestBody FoodRecordDTO foodDTO, BindingResult result) {
+    public Result addRecord(@Valid @RequestBody FoodRecordDTO foodDTO) {
 
         logger.info("接收到添加食品记录请求: {}", foodDTO);
 

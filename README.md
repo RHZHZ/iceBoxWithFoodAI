@@ -18,13 +18,16 @@
 - [贡献指南](#贡献指南)
 - [许可证](#许可证)
 
-## 功能特性
-| 模块         | 功能描述                                           |
-| ------------ | -------------------------------------------------- |
-| AI食物识别   | 解析自然语言输入（如"吃了300g全麦面包"）并更新库存 |
-| 智能菜谱生成 | 根据食材生成包含营养成分和步骤的菜谱               |
-| 用户收藏系统 | 支持菜谱收藏/取消收藏，带分页查询功能              |
-| 库存管理     | 实时追踪食物库存状态，支持多单位换算               |
+## 功能特性（部分）
+| 模块         | 功能描述                                                     |
+| ------------ | ------------------------------------------------------------ |
+| AI食物识别   | 解析自然语言输入（如"吃了300g全麦面包"）并更新库存           |
+| AI食物记录   | 解析自然语言输入（如"我今天买了500克牛肉，花了50元，属于生鲜类，保质期3天"）并更新库存 |
+| 智能菜谱生成 | 根据食材生成包含营养成分和步骤的菜谱(如"生成番茄炒蛋菜谱,我最近减肥") |
+| 库存浪费情况 | 支持查询库存食物总浪费金额                                   |
+| 用户收藏系统 | 支持菜谱收藏/取消收藏，带分页查询功能                        |
+| 库存管理     | 实时追踪食物库存状态，支持多单位换算                         |
+| ...          | ...                                                          |
 
 ## 技术栈
 **后端框架**
@@ -95,7 +98,7 @@ mvn spring-boot:run
 
 ---
 
-## API文档
+## API文档（部分）
 
 ### 食物记录接口
 `POST /api/food/record`
@@ -120,21 +123,36 @@ mvn spring-boot:run
 }
 ```
 
-### 用户相关接口
-| 方法   | 端点               | 功能描述         |
-| ------ | ------------------ | ---------------- |
-| POST   | /user/register     | 用户注册         |
-| POST   | /user/login        | 用户登录         |
-| PUT    | /user/update       | 信息更新         |
-| PATCH  | /user/updateAvatar | 头像更新         |
-| PATCH  | /user/updatePwd    | 更新密码         |
-| DELETE | /favorites/remove  | 移除收藏         |
-| POST   | /favorites/add     | 添加收藏         |
-| GET    | /favorites/list    | 分页查询收藏列表 |
+### 已完成相关接口
+| 方法   | 端点                             |                功能描述 |
+| ------ | :------------------------------- | ----------------------: |
+| POST   | /user/register                   |                用户注册 |
+| POST   | /user/login                      |                用户登录 |
+| PUT    | /user/update                     |                信息更新 |
+| PATCH  | /user/updateAvatar               |                头像更新 |
+| PATCH  | /user/updatePwd                  |                更新密码 |
+| DELETE | /favorites/remove                |                移除收藏 |
+| POST   | /favorites/add                   |                添加收藏 |
+| GET    | /favorites/list                  |        分页查询收藏列表 |
+| POST   | /ai/chat                         |                 GPT服务 |
+| GET    | /foods/foodRecordList            |        获取用户食物记录 |
+| GET    | /foods/foodEatRecordList         |  获取用户吃完的食物记录 |
+| GET    | /foods/foodNormalRecordList      |  获取用户正常的食物记录 |
+| GET    | /foods/foodThrowRecordList       |  获取用户浪费的食物记录 |
+| POST   | /foods/addRecord                 |        增添一条食物记录 |
+| PATCH  | /foods/delRecord                 |        删除一条食物记录 |
+| GET    | /foods/getTotalPriceOfThrownFood | 获取用户浪费foods总价格 |
+| PATCH  | /foods/getFoodRecordBytype       |    根据分类获取食物记录 |
+| GET    | /foods/expiringFoods             |      获取临期产品 7Days |
+| PATCH  | /foods/search                    |        模糊查询食物记录 |
+| POST   | /foods/eat                       |                食物消耗 |
+| POST   | /foods/consumeByAi               |    自然语言处理食物消耗 |
+| POST   | /foods/recordByAi                |    自然语言存取食物记录 |
+| POST   | /recipe/generate                 |        根据需求生成菜谱 |
+| GET    | /recipe/list                     |            分页查询菜谱 |
+| ...    | ...                              |                     ... |
 
----
-
-## 数据库设计
+## 数据库设计（部分）
 **ER Diagram**
 
 ```
