@@ -31,6 +31,9 @@
 - Spring Boot 3.1.5
 - MyBatis 3.0.3
 - Reactor 3.4.12 (响应式编程)
+- webflux
+- Openai-gpt3-java 0.18.0
+- JWT 4.4.0
 
 **AI集成**
 - DeepSeek API
@@ -42,8 +45,12 @@
 
 **工具链**
 - Lombok 1.18.30
+
 - Jackson 2.15.3
+
 - PageHelper 5.3.2
+
+  
 
 ---
 
