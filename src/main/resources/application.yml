@@ -18,10 +18,10 @@ logging:
     reactor.netty.http.client: DEBUG
 ai:
   providers:
-    openai:
-      api-key: sk-ofHJpRbSPb6Iycw63d0731EbD82d472fBd9024Aa216dF2E9
-      base-url: https://uu.ci/v1
+    openai:xxxxxx
+      api-key: sk-ofHJpRbx'x'x'x'x'x
+      base-url: https://x'x'x/v1
     deepseek:
-      api-key: sk-e6ad7995343b48f6888e1f7429b15c27
+      api-key: sk-e6ad7995x'x'x'x'xc27xxxxx
       base-url: https://api.deepseek.com/v1
       model: deepseek-chat  # 指定使用 R1 模型
