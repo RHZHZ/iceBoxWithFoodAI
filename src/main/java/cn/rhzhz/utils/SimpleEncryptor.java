@@ -6,7 +6,7 @@ import java.util.Base64;
 
 public class SimpleEncryptor {
     private static final String AES_ALGORITHM = "AES";
-    private static final String SECRET_KEY = "rhzhzx'x'x'xxxxxxxxx"; // 自定义密钥（必须16/24/32位）
+    private static final String SECRET_KEY = "rhzhz17823232976"; // 自定义密钥（必须16/24/32位）
 
     // 加密
     public static String encrypt(String data) throws Exception {

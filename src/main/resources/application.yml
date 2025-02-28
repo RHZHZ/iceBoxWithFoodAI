@@ -7,6 +7,8 @@ spring:
   jpa:
     hibernate.ddl-auto: update
     show-sql: true
+  pictureGen:
+    URL: https://cn.apihz.cn/api/img/apihzimgbaidu.php?id=88888888&key=88888888&limit=10&page=1&words=
 # 开启自动驼峰命名映射（column下划线 → property驼峰）
 mybatis:
   configuration:
@@ -18,10 +20,10 @@ logging:
     reactor.netty.http.client: DEBUG
 ai:
   providers:
-    openai:xxxxxx
-      api-key: sk-ofHJpRbx'x'x'x'x'x
-      base-url: https://x'x'x/v1
+    openai:
+      api-key: sk-ofHJpRbSPb6Iycw63d0731EbD82d472fBd9024Aa216dF2E9
+      base-url: https://uu.ci/v1
     deepseek:
-      api-key: sk-e6ad7995x'x'x'x'xc27xxxxx
+      api-key: sk-e6ad7995343b48f6888e1f7429b15c27
       base-url: https://api.deepseek.com/v1
       model: deepseek-chat  # 指定使用 R1 模型

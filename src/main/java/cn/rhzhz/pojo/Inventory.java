@@ -3,8 +3,7 @@ package cn.rhzhz.pojo;
 import cn.rhzhz.enumType.StorageLocation;
 import lombok.Data;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
+
 
 @Data
 public class Inventory {

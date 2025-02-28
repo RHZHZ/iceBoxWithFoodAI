@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 @Data
 public class FoodRecordDTO {
+
+    private int userId;
+
     @NotBlank(message = "食品名称不能为空")
     private String name; // 标准名称（如"全麦面包"）
 
