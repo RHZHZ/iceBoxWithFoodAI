@@ -241,6 +241,7 @@ public class FoodsRecordController {
 
                     try {
                         List<FoodRecordDTO> dtos = parseAIResponse(fullResponse, userId);
+                        logger.info("后端解析结果: {}", fullResponse);
                         return validateAndSave(dtos,userId);
                     } catch (Exception e) {
                         return Flux.just("错误: " + e.getMessage());
@@ -251,8 +252,10 @@ public class FoodsRecordController {
     // 校验保存逻辑
     private Flux<String> validateAndSave(List<FoodRecordDTO> dtos, Integer userId) {
         SimplifiedBindingResult results = new SimplifiedBindingResult();
+
         return Flux.fromIterable(dtos)
-                .flatMap(dto -> {
+            .flatMap(dto ->
+                Mono.fromCallable({
 
                     List<String> errors = new ArrayList<>();
 
@@ -290,12 +293,12 @@ public class FoodsRecordController {
                         foodRecord.setRemainingQuantity(dto.getRemainingQuantity());
                         foodRecord.setInfo(dto.getInfo());
                         //ADD
-                        logger.info("语言处理映射后到添加食品记录请求: {}", foodRecord);
+                        logger.info("语言处理映射后到添加食品记录请求validateAndSave: {}", foodRecord);
                         try {
                             foodsRecordService.addRecord(foodRecord);
                             return Flux.just("成功添加记录: " + dto.getName());
                         } catch (Exception e) {
-                            return Flux.just("添加失败: " + e.getMessage());
+                            return Flux.just("添加失败(同一记录请手动修改): " + e.getMessage());
 
                         }
                     } catch (RuntimeException e) {

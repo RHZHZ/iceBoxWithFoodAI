@@ -176,10 +176,150 @@ CREATE TABLE recipe_favorites (
 
 ---
 
+## 问题
+
+1. ### **允许用户添加同名食品**
+
+   **适用场景**：同一用户需要记录多个同名但不同批次、不同购买时间的食品（如多次购买牛奶）。
+
+   ```sql
+   -- 删除旧索引
+   DROP INDEX idx_user_food ON food_record;
+   
+   -- 创建新索引（允许同名但不同购买日期的记录）
+   CREATE UNIQUE INDEX idx_user_food_date 
+   ON food_record(user_id, name, purchase_date);
+   ```
+
+   **更新插入逻辑**:确保每次插入时 `purchase_date` 不同：
+
+   ```java
+   // 在Java代码中设置不同的购买日期
+   foodRecord.setPurchaseDate(new Date()); // 使用实际购买时间而非当前时间
+   // 提示词优化确保参考日期计算正确
+   String old_prompt = config.getPrompt();
+   String head_date ="日期:" + String.valueOf(LocalDate.now()) ;
+   String new_prompt = head_date + old_prompt;
+   config.setPrompt(new_prompt);
+   ```
+
+2. ------
+
+   ### **在使用AI处理食品记录时，遇到唯一索引冲突导致整个流程中断的问题**
+
+   1. #### **问题记录：**
+
+      - 根据错误日志，当插入“猪肉”记录时，触发了唯一键冲突，因为数据库里已经存在相同的用户ID、食品名称和购买日期。这导致整个Flux流中断，后续的记录无法处理。
+
+   2. #### **问题分析：**
+
+      - `validateAndSave`方法中，使用了`flatMap`来处理每个DTO，但如果有异常抛出，整个流就会停止。这是因为在响应式编程中，默认情况下，一旦出现错误，流会终止。
+      
+   3. #### **问题思考：**
+      1. 需要修改校验和保存逻辑，确保每个记录的处理都是独立的，即使一个失败，其他记录仍能继续。这可以通过为每个记录创建一个独立的事务，并在错误时继续处理后续记录来实现。
+      2. 考虑如何处理唯一性校验。当前代码在插入前没有检查是否存在重复记录，而是依赖数据库抛出异常。但这种方式会导致流中断。应该在插入前手动检查是否存在重复，避免触发数据库异常。
+      3. 将校验和保存逻辑封装在独立的Mono中，使用`onErrorResume`来捕获异常并返回错误信息，而不是让异常传播到整个流。
+      4. 调整事务管理，确保每个记录的插入操作在独立的事务中进行，这样即使一个失败，不会影响其他记录的提交。需要为每个插入操作使用`Propagation.REQUIRES_NEW`的事务传播机制。
+      5. 测试修改后的代码，确保当某条记录出现唯一键冲突时，其他记录仍能成功插入，并且错误信息能正确返回给用户，而不是导致整个流程中断。
+
+   4. #### **问题解决：**
+
+      > 通过 **错误隔离 + 事务独立提交** 实现单条失败不影响整体流程。
+
+      1. **修改校验保存逻辑（独立错误处理）**
+
+         ```Java
+         private Flux<String> validateAndSave(List<FoodRecordDTO> dtos, Integer userId) {
+             return Flux.fromIterable(dtos)
+                 .flatMap(dto -> 
+                     Mono.fromCallable(() -> {
+                         // 参数校验逻辑
+                         List<String> errors = validateDTO(dto);
+                         if (!errors.isEmpty()) {
+                             throw new ValidationException(String.join(", ", errors));
+                         }
+         
+                         // 唯一性校验（关键改进点）
+                         boolean exists = foodsMapper.existsByUserAndNameAndDate(
+                             userId, 
+                             dto.getName(), 
+                             dto.getPurchaseDate()
+                         );
+                         if (exists) {
+                             throw new DuplicateKeyException("重复记录: " + dto.getName());
+                         }
+                         // 转换并保存
+          				.......
+         }
+         ```
+
+      2. **唯一性校验Mapper方法**
+
+         ```sql
+         @Select("SELECT COUNT(*) FROM food_record " +
+                 "WHERE user_id = #{userId} " +
+                 "AND name = #{name} " +
+                 "AND purchase_date = #{purchaseDate}")
+         boolean existsByUserAndNameAndDate(
+             @Param("userId") Integer userId,
+             @Param("name") String name,
+             @Param("purchaseDate") LocalDate purchaseDate
+         );
+         ```
+
+      3. **.调整事务传播机制（关键）**
+
+         ```java
+         @Service
+         public class FoodsRecordServiceImpl {
+         
+             @Transactional(propagation = Propagation.REQUIRES_NEW) // 每个保存操作独立事务
+             public void addRecord(FoodRecord record) {
+                 foodsMapper.addRecord(record);
+             }
+         }
+         ```
+
+   5. #### 优化效果
+
+      |          场景          |       原逻辑        |           新逻辑           |
+      | :--------------------: | :-----------------: | :------------------------: |
+      |    某条记录校验失败    |    整个流程终止     | 仅该记录报错，其他继续处理 |
+      | 唯一键冲突（重复记录） | 抛出SQL异常中断流程 |   提前拦截并返回友好提示   |
+      | 系统异常（如网络抖动） |       流终止        |  单条标记失败，不影响其他  |
+
+   6. #### **验证测试**
+
+      ```text
+      //输入
+      名称:猪肉 (已存在)
+      名称:牛肉 (新记录)
+      名称:豆腐 (日期格式错误)
+      //输出
+      添加失败[猪肉]: 重复记录: 猪肉
+      成功添加记录: 牛肉
+      添加失败[豆腐]: 保质期不能早于购买日期
+      ```
+
+3. ------
+
+   **分页查询**  
+   使用PageHelper分页参数：
+
+   ```java
+   PageHelper.startPage(pageNum, pageSize);
+   ```
+
+4. **数据安全**  
+   敏感操作需通过JWT认证
+
+
+
 ## 注意事项
+
 1. **AI响应格式**  
    必须使用结构化提示词确保返回有效JSON
-   
+
 2. **分页查询**  
    使用PageHelper分页参数：
    ```java
