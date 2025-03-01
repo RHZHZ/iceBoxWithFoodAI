@@ -202,10 +202,8 @@ CREATE TABLE recipe_favorites (
    String new_prompt = head_date + old_prompt;
    config.setPrompt(new_prompt);
    ```
-
-2. ------
-
-   ### **在使用AI处理食品记录时，遇到唯一索引冲突导致整个流程中断的问题**
+------
+2. ### **在使用AI处理食品记录时，遇到唯一索引冲突导致整个流程中断的问题**
 
    1. #### **问题记录：**
 
