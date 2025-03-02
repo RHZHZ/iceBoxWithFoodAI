@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.mysql.cj.conf.PropertyKey.logger;
+import static java.lang.System.*;
 
 @RestController
 @RequestMapping("/recipe")
@@ -62,7 +63,8 @@ public class RecipeController {
         return recipeService.generateStructuredRecipe(structuredPrompt, provider, userId);
     }
 
-    //分页查询菜谱
+    //分页查询菜谱-可根据类别，id查询
+
     @GetMapping("/list")
     public Result<PageResult<RecipeResponse>> listRecipes(
             @RequestParam(required = false) Integer userId,
@@ -70,13 +72,21 @@ public class RecipeController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        // 构建查询参数
+        // 构建查询参数，若提供id则进行身份校验
+        if(userId!=null){
+            //身份校验
+            Map<String, Object> map = ThreadLocalUtil.get();
+            Integer Id = (Integer) map.get("id");
+            if(!Id.equals(userId))return Result.error("非法请求");
+        }
+
+        //构建查询类
         RecipeQuery query = new RecipeQuery(userId, cuisineType);
         // 分页查询
         PageResult<RecipeEntity> pageResult = recipeService.listRecipes(query, page, size);
 
         // 转换为响应DTO
-        List<RecipeResponse> data = pageResult.getData().stream()
+        List<RecipeResponse> data = pageResult.getItems().stream()
                 .map(this::convertToResponse)
                 .collect(Collectors.toList());
 

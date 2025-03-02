@@ -1,6 +1,9 @@
 package cn.rhzhz.pojo;
 
+import cn.rhzhz.DTO.FoodRecordDTO;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.databind.JsonNode;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 
@@ -9,33 +12,34 @@ import java.time.LocalDate;
 
 
 // 食品基础实体
+//一个用户多个食品记录，一条记录属于一个用户，一个食品属于一个夹层
 @Data
 public class FoodRecord {
-//一个用户多个食品记录，一条记录属于一个用户，一个食品属于一个夹层
+
     private int id;
-
+    @NotBlank
     private int userId;
-
+    @NotBlank
     private String name; // 标准名称（如"全麦面包"）
-
-
-//    private JsonNode nickName; // 别名列表（如["黑麦面包","全麦吐司"]）
-
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate purchaseDate; // 购买日期
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expirationDate; // 保质期截止日
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate created_time;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate update_time;
     private BigDecimal totalQuantity; // 初始总量
     private BigDecimal remainingQuantity; // 当前剩余量
-
     private BigDecimal price; // 购买价格
-//    private String batchTag; // 批次标识（如"20240220-001"）
     private int info; // 食物状态0正常1吃完2浪费
-
-
     private String unitType; // 单位类型（克/毫升/片）
-
     private String type; // 食品分类（如"主食","乳制品"）
-
     private String imgUrl; // 食品图
+    //private String batchTag; // 批次标识（如"20240220-001"）
+
+
+    //private JsonNode nickName; // 别名列表（如["黑麦面包","全麦吐司"]）
 
     /**
      * 消耗食物
@@ -63,5 +67,22 @@ public class FoodRecord {
         if (newRemaining.compareTo(BigDecimal.ZERO) == 0) {
             this.info = 1;
         }
+    }
+
+    //Dto实体转换
+    public FoodRecord convertToEntity(FoodRecordDTO dto, Integer userId) {
+        FoodRecord foodRecord = new FoodRecord();
+        foodRecord.setUserId(userId);
+        foodRecord.setName(dto.getName());
+        foodRecord.setImgUrl(dto.getImgUrl());
+        foodRecord.setExpirationDate(dto.getExpirationDate());
+        foodRecord.setPurchaseDate(dto.getPurchaseDate());
+        foodRecord.setPrice(dto.getPrice());
+        foodRecord.setUnitType(dto.getUnitType());
+        foodRecord.setType(dto.getType());
+        foodRecord.setTotalQuantity(dto.getTotalQuantity());
+        foodRecord.setRemainingQuantity(dto.getRemainingQuantity());
+        foodRecord.setInfo(dto.getInfo());
+        return foodRecord;
     }
 }

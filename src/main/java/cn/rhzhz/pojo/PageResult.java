@@ -12,7 +12,6 @@ import java.util.List;
 public class PageResult<T> {
     private long total;       // 总记录数
     private int pages;        // 总页数
-    private List<T> data;     // 当前页数据
-
+    private List<T> items;     // 当前页数据
 
 }

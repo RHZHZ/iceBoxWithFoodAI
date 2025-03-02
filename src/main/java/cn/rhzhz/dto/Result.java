@@ -1,5 +1,6 @@
 package cn.rhzhz.DTO;
 
+import cn.rhzhz.pojo.FoodsCategory;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,4 +27,6 @@ public class Result<T> {
     public static <T> Result<T> error(String message) {
         return new Result<>(500, message, null);
     }
+
+
 }

@@ -61,7 +61,12 @@ public class ImageApiClient {
         } finally {
             conn.disconnect();
         }
-        String results = result.get(0);
+        String results = null;
+        try {
+            results = result.get(0);
+        } catch (Exception e) {
+            results = "http://rhzhz.cn";
+        }
 
         return results;
     }

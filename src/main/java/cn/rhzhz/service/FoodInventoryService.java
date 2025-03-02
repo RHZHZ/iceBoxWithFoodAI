@@ -33,6 +33,9 @@ public class FoodInventoryService {
     @Autowired
     private final FoodsMapper foodRecordMapper;
 
+    @Autowired
+    private FoodsRecordService foodsRecordService;
+
     @Value("${ai.providers.deepseek.api-key}")
     private String apiKey;
 
@@ -88,11 +91,11 @@ public class FoodInventoryService {
                                     food.setUnit(matcher.group(3));
 
                                     try {
-                                        List<FoodRecord> records = foodRecordMapper.findByName(food.getFoodName(), id);
+                                        List<FoodRecord> records = foodsRecordService.findByName(food.getFoodName(), id);
                                         if (records.isEmpty()) {
                                             return Flux.just(food.getFoodName() + ": 食品不存在");
                                         }
-
+                                        //多记录只取一条
                                         FoodRecord record = records.get(0);
                                         BigDecimal remaining = record.getRemainingQuantity() != null ?
                                                 record.getRemainingQuantity() : record.getTotalQuantity();
@@ -107,7 +110,7 @@ public class FoodInventoryService {
                                         }
 
                                         record.setRemainingQuantity(newRemaining);
-                                        foodRecordMapper.update(record);
+                                        foodsRecordService.update(record);
 
                                         return Flux.just(food.getFoodName() + " 更新成功，剩余 " + newRemaining + record.getUnitType());
                                     } catch (Exception e) {

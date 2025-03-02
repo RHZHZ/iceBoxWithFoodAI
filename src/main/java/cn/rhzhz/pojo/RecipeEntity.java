@@ -1,5 +1,6 @@
 package cn.rhzhz.pojo;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -35,5 +36,6 @@ public class RecipeEntity {
     private String healthAdvice;
 
     @Column(updatable = false)
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDateTime createTime = LocalDateTime.now();
 }

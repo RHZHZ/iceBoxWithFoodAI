@@ -1,6 +1,7 @@
 package cn.rhzhz.mapper;
 
 import cn.rhzhz.pojo.FoodRecord;
+import cn.rhzhz.pojo.FoodTypeCount;
 import org.apache.ibatis.annotations.*;
 
 import java.math.BigDecimal;
@@ -71,14 +72,43 @@ public interface FoodsMapper {
     @Select("select * from food_record where id = #{foodId}")
     FoodRecord findById(int foodId);
 
-    // 更新记录
+    // 更新余量记录
     @Update("UPDATE food_record SET " +
             "remaining_quantity = #{remainingQuantity}, " +
             "info = #{info} " +
             "WHERE id = #{id} AND user_id = #{userId}")
     void update(FoodRecord food);
 
-    // 正确定义（返回可能包含多个记录的 List）
+    // 返回可能包含多个记录的 List
     @Select("SELECT * FROM food_record WHERE name = #{name} AND user_id = #{userId}")
     List<FoodRecord> findByName(@Param("name") String name, @Param("userId") Integer userId);
+
+    //根据分类统计记录数量并返回
+    @Select("SELECT type, COUNT(*) AS count FROM food_record WHERE user_id = 7 GROUP BY type")
+    List<FoodTypeCount> groupByType(@Param("userId") int userId);
+
+    @Select("SELECT COUNT(*) FROM food_record " +
+            "WHERE user_id = #{userId} " +
+            "AND name = #{name} " +
+            "AND purchase_date = #{purchaseDate}")
+    boolean existsByUserAndNameAndDate(Integer userId, String name, LocalDate purchaseDate);
+
+    //修改一条库存记录
+    @Update({
+            "UPDATE food_record " +
+            "SET" +
+            "    type = #{type}, " +
+            "    name = #{name}, " +
+            "    price = #{price}," +
+            "    info = #{info}," +
+            "    unit_type = #{unitType}," +
+            "    update_time = NOW()," +
+            "    purchase_date = #{purchaseDate}," +
+            "    expiration_date = #{expirationDate}," +
+            "    total_quantity = #{totalQuantity}," +
+            "    remaining_quantity = #{remainingQuantity}," +
+            "    img_url = #{imgUrl}" +
+            "WHERE id = #{id} AND user_id = #{userId}"
+    })
+    void updateRecord(FoodRecord foodRecord);
 }

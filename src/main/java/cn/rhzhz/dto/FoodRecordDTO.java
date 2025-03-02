@@ -1,16 +1,30 @@
 package cn.rhzhz.DTO;
 
+import cn.rhzhz.utils.FoodRecordTools;
+import cn.rhzhz.utils.ImageApiClient;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.hibernate.validator.constraints.Range;
 import org.hibernate.validator.constraints.URL;
+import org.mybatis.logging.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 @Data
 public class FoodRecordDTO {
+
+
+    private int id;
 
     private int userId;
 
@@ -49,6 +63,5 @@ public class FoodRecordDTO {
     @URL(message = "图片URL格式不正确")
     private String imgUrl; // 食品图片
 
-    // Getter 和 Setter
-    // ...
+
 }
