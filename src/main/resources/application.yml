@@ -21,9 +21,17 @@ logging:
 ai:
   providers:
     openai:
-      api-key: sk-ofHJpRbSPb6Iycw63d0731EbD82d472fBd9024Aa216dF2E9
+      api-key:
       base-url: https://uu.ci/v1
     deepseek:
-      api-key: sk-e6ad7995343b48f6888e1f7429b15c27
+      api-key:
       base-url: https://api.deepseek.com/v1
       model: deepseek-chat  # 指定使用 R1 模型
+tencent:
+  oss:
+    SecretKey:
+    appid:
+    SecretId:
+    bucket:
+    region:
+    URL:

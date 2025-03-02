@@ -164,6 +164,7 @@ mvn spring-boot:run
 ```
 
 **关键表结构**
+
 ```sql
 CREATE TABLE recipe_favorites (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -175,6 +176,122 @@ CREATE TABLE recipe_favorites (
 ```
 
 ---
+
+## 开发日志
+
+### 开发日志 - 2024年3月3日
+
+#### 腾讯云COS文件上传功能开发
+
+- 实现基于STS临时密钥的前端直传方案
+  - https://cloud.tencent.com/document/product/436/14048
+- 修复`InvalidRequest`错误（400状态码）
+- 优化权限策略配置，遵循最小权限原则
+- 增加文件上传异常处理机制
+
+------
+
+#### **关键问题与解决方案**
+
+|        问题描述         |                      根本原因                       |                           解决方案                           |
+| :---------------------: | :-------------------------------------------------: | :----------------------------------------------------------: |
+| `secretId is null` 错误 |                   配置未正确注入                    |            使用`@Value`动态注入 + Spring Bean管理            |
+|  `ClassCastException`   |                   分页插件未生效                    |                  改用`PageInfo`封装分页结果                  |
+| `InvalidRequest (400)`  | 上传流类型（InputStream）需使用TransferManager 实例 |            创建 TransferManager实例，完成相关方法            |
+|    文件路径权限不足     |                   资源路径硬编码                    | 动态拼接资源路径：`qcs::cos:{region}:uid/{appid}:{bucket}/user_{id}/*` |
+|      内存溢出警告       |               未设置`Content-Length`                |         显式设置`objectMetadata.setContentLength()`          |
+
+------
+
+#### **配置变更记录**
+
+```yaml
+# application.yml
+tencent:
+  oss:
+    SecretId: AKID******  # 主账号/子账号密钥
+    SecretKey: Rgi*******  # 需妥善保管
+    appid: 12515xxxx      # 腾讯云账号APPID
+    bucket: icebox-foodai-12xxxx  # 存储桶名称
+    region: ap-chongqing    # 地域标识（全小写）
+    URL: https://ixxxx-xxxxx.cos.ap-chongqing.myqcloud.com  # 完整Endpoint
+```
+
+------
+
+#### **核心代码优化**
+
+1. **STS临时密钥生成**
+
+   java
+
+   ```java
+   // 动态构建资源路径
+   //通过CosStsClient动态生成包含精细权限的临时密钥
+   //采用策略语法生成器动态构建Resource路径，实现租户隔离（user_${userId}目录）
+   statement.addResources(new String[]{
+       "qcs::cos:" + REGION + ":uid/" + APPID + ":" + BUCKET_NAME + "/user_*/*"
+   });
+   ```
+
+2. **安全上传流程**
+
+   java
+
+   ```java
+   // 显式设置流长度
+   ObjectMetadata metadata = new ObjectMetadata();
+   metadata.setContentLength(file.getSize());
+   ```
+
+3. **TransferManager使用**
+
+   java
+
+   ```java
+   // 创建高并发上传客户端
+   TransferManager createTransferManager(Map<String,String>map) {
+       // 创建一个 COSClient 实例，这是访问 COS 服务的基础实例。
+       // 详细代码参见https://cloud.tencent.com/document/product/436/65935
+       COSClient cosClient = createCOSClient(map.get("tmpSecretId"),map.get("tmpSecretKey"),map.get("sessionToken"));
+   
+       // 自定义线程池大小，建议在客户端与 COS 网络充足（例如使用腾讯云的 CVM，同地域上传 COS）的情况下，设置成16或32即可，可较充分的利用网络资源
+       // 对于使用公网传输且网络带宽质量不高的情况，建议减小该值，避免因网速过慢，造成请求超时。
+       ExecutorService threadPool = Executors.newFixedThreadPool(32);
+   
+       // 传入一个 threadpool, 若不传入线程池，默认 TransferManager 中会生成一个单线程的线程池。
+       TransferManager transferManager = new TransferManager(cosClient, threadPool);
+   
+       return transferManager;
+   }
+   ```
+
+------
+
+#### **待办事项**
+
+- 完善头像上传，食品图像上传功能
+
+------
+
+#### **注意事项**
+
+1. **密钥安全**
+
+   - 禁止将`SecretId/SecretKey`提交到代码仓库
+   - 生产环境建议使用子账号密钥
+
+2. **地域一致性**
+
+   - Bucket名称、Endpoint、`region`配置需完全匹配
+
+3. **大文件处理**
+
+   - > 20MB文件需使用分块上传接口
+
+完整代码参见：TencentOssUtils.java
+
+
 
 ## 问题
 
@@ -299,16 +416,32 @@ CREATE TABLE recipe_favorites (
       添加失败[豆腐]: 保质期不能早于购买日期
       ```
 
-3. ------
+3. ### **腾讯云COS文件上传功能开发**
 
-   **分页查询**  
-   使用PageHelper分页参数：
+   1. #### 腾讯云COS文件上传功能开发
+
+      - 实现基于STS临时密钥的前端直传方案
+      - 修复`InvalidRequest`错误（400状态码）
+      - 优化权限策略配置，遵循最小权限原则
+      - 增加文件上传异常处理机制
+
+   2. #### **关键问题与解决方案**
+
+      |        问题描述         |                      根本原因                       |                           解决方案                           |
+      | :---------------------: | :-------------------------------------------------: | :----------------------------------------------------------: |
+      | `secretId is null` 错误 |                   配置未正确注入                    |            使用`@Value`动态注入 + Spring Bean管理            |
+      |  `ClassCastException`   |                   分页插件未生效                    |                  改用`PageInfo`封装分页结果                  |
+      | `InvalidRequest (400)`  | 上传流类型（InputStream）需使用TransferManager 实例 |            创建 TransferManager实例，完成相关方法            |
+      |    文件路径权限不足     |                   资源路径硬编码                    | 动态拼接资源路径：`qcs::cos:{region}:uid/{appid}:{bucket}/user_{id}/*` |
+      |      内存溢出警告       |               未设置`Content-Length`                |         显式设置`objectMetadata.setContentLength()`          |
+
+4. 使用PageHelper分页参数：
 
    ```java
    PageHelper.startPage(pageNum, pageSize);
    ```
 
-4. **数据安全**  
+5. **数据安全**  
    敏感操作需通过JWT认证
 
 
@@ -326,6 +459,15 @@ CREATE TABLE recipe_favorites (
 
 3. **数据安全**  
    敏感操作需通过JWT认证
+
+4. **类型注解对照表**：
+
+   |    注解     |        适用类型         |                 校验规则                 |
+   | :---------: | :---------------------: | :--------------------------------------: |
+   | `@NotNull`  |      所有引用类型       |             字段不为 `null`              |
+   | `@NotEmpty` | String, Collection, Map | 非 `null` 且内容非空（如字符串长度 > 0） |
+   | `@NotBlank` |         String          |        非 `null` 且非全空格字符串        |
+
 
 ---
 
