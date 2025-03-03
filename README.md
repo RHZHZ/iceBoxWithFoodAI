@@ -86,9 +86,21 @@ spring:
     username: root
     password: yourpassword
 
+//ai服务
 ai:
   deepseek:
     api-key: your_api_key_here
+    base-url: your_api_server_host
+
+//oss服务
+tencent:
+    oss:
+        SecretId: AKID******  # 主账号/子账号密钥
+        SecretKey: Rgi*******  # 需妥善保管
+        appid: 12515xxxx      # 腾讯云账号APPID
+        bucket: icebox-foodai-12xxxx  # 存储桶名称
+        region: ap-chongqing    # 地域标识（全小写）
+        URL: https://ixxxx-xxxxx.cos.ap-chongqing.myqcloud.com  # 完整Endpoint
 ```
 
 4. 启动应用
@@ -134,22 +146,27 @@ mvn spring-boot:run
 | DELETE | /favorites/remove                |                移除收藏 |
 | POST   | /favorites/add                   |                添加收藏 |
 | GET    | /favorites/list                  |        分页查询收藏列表 |
+| GET    | /favorites/listFavoritesByType   |        分类下的菜谱收藏 |
 | POST   | /ai/chat                         |                 GPT服务 |
 | GET    | /foods/foodRecordList            |        获取用户食物记录 |
 | GET    | /foods/foodEatRecordList         |  获取用户吃完的食物记录 |
 | GET    | /foods/foodNormalRecordList      |  获取用户正常的食物记录 |
 | GET    | /foods/foodThrowRecordList       |  获取用户浪费的食物记录 |
 | POST   | /foods/addRecord                 |        增添一条食物记录 |
+| PUT    | /foods/updateRecord              |            更新食物记录 |
 | PATCH  | /foods/delRecord                 |        删除一条食物记录 |
 | GET    | /foods/getTotalPriceOfThrownFood | 获取用户浪费foods总价格 |
 | PATCH  | /foods/getFoodRecordBytype       |    根据分类获取食物记录 |
 | GET    | /foods/expiringFoods             |      获取临期产品 7Days |
+| PATCH  | /foods/groupByType               |            食品分类统计 |
 | PATCH  | /foods/search                    |        模糊查询食物记录 |
 | POST   | /foods/eat                       |                食物消耗 |
 | POST   | /foods/consumeByAi               |    自然语言处理食物消耗 |
 | POST   | /foods/recordByAi                |    自然语言存取食物记录 |
 | POST   | /recipe/generate                 |        根据需求生成菜谱 |
 | GET    | /recipe/list                     |            分页查询菜谱 |
+| POST   | /upload                          |                     OSS |
+| POST   | /foodsCategory/add               |            添加食物分类 |
 | ...    | ...                              |                     ... |
 
 ## 数据库设计（部分）
@@ -181,7 +198,7 @@ CREATE TABLE recipe_favorites (
 
 ### 开发日志 - 2024年3月3日
 
-#### 腾讯云COS文件上传功能开发
+腾讯云COS文件上传功能开发
 
 - 实现基于STS临时密钥的前端直传方案
   - https://cloud.tencent.com/document/product/436/14048
@@ -191,7 +208,7 @@ CREATE TABLE recipe_favorites (
 
 ------
 
-#### **关键问题与解决方案**
+**关键问题与解决方案**
 
 |        问题描述         |                      根本原因                       |                           解决方案                           |
 | :---------------------: | :-------------------------------------------------: | :----------------------------------------------------------: |
@@ -203,7 +220,7 @@ CREATE TABLE recipe_favorites (
 
 ------
 
-#### **配置变更记录**
+**配置变更记录**
 
 ```yaml
 # application.yml
@@ -219,7 +236,7 @@ tencent:
 
 ------
 
-#### **核心代码优化**
+**核心代码优化**
 
 1. **STS临时密钥生成**
 
@@ -268,13 +285,13 @@ tencent:
 
 ------
 
-#### **待办事项**
+**待办事项**
 
 - 完善头像上传，食品图像上传功能
 
 ------
 
-#### **注意事项**
+**注意事项**
 
 1. **密钥安全**
 
@@ -295,7 +312,7 @@ tencent:
 
 ## 问题
 
-1. ### **允许用户添加同名食品**
+1. **允许用户添加同名食品**
 
    **适用场景**：同一用户需要记录多个同名但不同批次、不同购买时间的食品（如多次购买牛奶）。
 
@@ -320,24 +337,25 @@ tencent:
    config.setPrompt(new_prompt);
    ```
 ------
-2. ### **在使用AI处理食品记录时，遇到唯一索引冲突导致整个流程中断的问题**
+2. **在使用AI处理食品记录时，遇到唯一索引冲突导致整个流程中断的问题**
 
-   1. #### **问题记录：**
+   1. **问题记录：**
 
       - 根据错误日志，当插入“猪肉”记录时，触发了唯一键冲突，因为数据库里已经存在相同的用户ID、食品名称和购买日期。这导致整个Flux流中断，后续的记录无法处理。
 
-   2. #### **问题分析：**
+   2. **问题分析：**
 
       - `validateAndSave`方法中，使用了`flatMap`来处理每个DTO，但如果有异常抛出，整个流就会停止。这是因为在响应式编程中，默认情况下，一旦出现错误，流会终止。
       
-   3. #### **问题思考：**
+   3. **问题思考：**
+      
       1. 需要修改校验和保存逻辑，确保每个记录的处理都是独立的，即使一个失败，其他记录仍能继续。这可以通过为每个记录创建一个独立的事务，并在错误时继续处理后续记录来实现。
       2. 考虑如何处理唯一性校验。当前代码在插入前没有检查是否存在重复记录，而是依赖数据库抛出异常。但这种方式会导致流中断。应该在插入前手动检查是否存在重复，避免触发数据库异常。
       3. 将校验和保存逻辑封装在独立的Mono中，使用`onErrorResume`来捕获异常并返回错误信息，而不是让异常传播到整个流。
       4. 调整事务管理，确保每个记录的插入操作在独立的事务中进行，这样即使一个失败，不会影响其他记录的提交。需要为每个插入操作使用`Propagation.REQUIRES_NEW`的事务传播机制。
       5. 测试修改后的代码，确保当某条记录出现唯一键冲突时，其他记录仍能成功插入，并且错误信息能正确返回给用户，而不是导致整个流程中断。
-
-   4. #### **问题解决：**
+      
+   4. **问题解决：**
 
       > 通过 **错误隔离 + 事务独立提交** 实现单条失败不影响整体流程。
 
@@ -387,15 +405,14 @@ tencent:
          ```java
          @Service
          public class FoodsRecordServiceImpl {
-         
              @Transactional(propagation = Propagation.REQUIRES_NEW) // 每个保存操作独立事务
              public void addRecord(FoodRecord record) {
                  foodsMapper.addRecord(record);
              }
          }
          ```
-
-   5. #### 优化效果
+      
+   5. 优化效果
 
       |          场景          |       原逻辑        |           新逻辑           |
       | :--------------------: | :-----------------: | :------------------------: |
@@ -403,7 +420,7 @@ tencent:
       | 唯一键冲突（重复记录） | 抛出SQL异常中断流程 |   提前拦截并返回友好提示   |
       | 系统异常（如网络抖动） |       流终止        |  单条标记失败，不影响其他  |
 
-   6. #### **验证测试**
+   6. **验证测试**
 
       ```text
       //输入
@@ -418,14 +435,14 @@ tencent:
 
 3. ### **腾讯云COS文件上传功能开发**
 
-   1. #### 腾讯云COS文件上传功能开发
+   1. 腾讯云COS文件上传功能开发
 
       - 实现基于STS临时密钥的前端直传方案
       - 修复`InvalidRequest`错误（400状态码）
       - 优化权限策略配置，遵循最小权限原则
       - 增加文件上传异常处理机制
 
-   2. #### **关键问题与解决方案**
+   2. **关键问题与解决方案**
 
       |        问题描述         |                      根本原因                       |                           解决方案                           |
       | :---------------------: | :-------------------------------------------------: | :----------------------------------------------------------: |
