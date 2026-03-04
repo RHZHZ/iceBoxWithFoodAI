@@ -67,7 +67,7 @@
 ### 安装步骤
 1. 克隆仓库
 ```bash
-git clone https://github.com/yourrepo/food-mgmt-system.git
+git clone https://github.com/RHZHZ/iceBoxWithFoodAI.git
 ```
 
 2. 数据库初始化
